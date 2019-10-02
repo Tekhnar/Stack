@@ -4,7 +4,8 @@
 
 typedef int Elem_t;
 typedef unsigned long long Bird_t;
-
+#define LEN_STACK (unsigned int)(stack->st_bird2 -  stack->st_bird1  + sizeof(stack->st_bird1))
+#define LEN_DATA (unsigned int)(stack->buf_burd2 -  stack->buf_bird1 + sizeof(*stack->buf_burd2))
 bool StackInit(struct Stack_t* stack);
 bool StackPush(Stack_t* stack,  Elem_t value);
 Elem_t StackPop(Stack_t* stack, int* n_err);
@@ -13,7 +14,9 @@ void StackVerific(Stack_t* stack);
 void NewPointInStack(Stack_t* stack);
 int AutoLenghtIncrease(Stack_t* stack);
 int AutoLenghtDecrease(Stack_t* stack);
-//unsigned int MurmurHash2 (Stack_t* stack);
+unsigned int MurmurHashData (Stack_t* stack, unsigned int len);
+//unsigned int MurmurHash (Stack_t* stack, unsigned int len);
+unsigned int MurmurHashStack (Stack_t* stack, unsigned int len);
 void StackDump(Stack_t *stack, const char welcome[], const char name_file[], const int line_prog, const char which_func[]);
 
 const int DEFAULT_LENGHT = 10;
@@ -21,6 +24,7 @@ const Elem_t POISON = -777;
 
 struct Stack_t{
     Bird_t st_bird1;
+
     Elem_t* data;
     void* buffer; // 'void *' for show that it is not data
     Bird_t* buf_bird1; // or better do with 'void *'
@@ -29,7 +33,9 @@ struct Stack_t{
     int lenght;
     int last_max;
     int hyster;
-    unsigned int hash;
+    unsigned int hash_data;
+    unsigned int hash_stack;
+
     Bird_t st_bird2;
 };
 
@@ -52,6 +58,7 @@ int main() {
 
     printf("\n");
     }*/
+    StackDump(&stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
     StackPush(&stack, 40);
     StackPush(&stack, 1);
@@ -105,17 +112,18 @@ Elem_t StackPop(Stack_t* stack, int* n_err) {
     assert(stack != nullptr);
     StackVerific(stack);
 
-    assert(stack->hash == MyHash(stack));
+    assert(stack->hash_data  == MurmurHashData(stack, LEN_DATA));
+    assert(stack->hash_stack == MurmurHashStack(stack, LEN_STACK));
 
-    if (stack->size < 1) *n_err = 1;
+    if (stack->size < 0) *n_err = 1;
     assert(stack->size != 0);
     Elem_t value = stack->data[--stack->size];
     stack->data[stack->size] = POISON;
 
     AutoLenghtDecrease(stack);
 
-    stack->hash = MyHash(stack);
-
+    stack->hash_data  = MurmurHashData(stack, LEN_DATA);
+    stack->hash_stack = MurmurHashStack(stack, LEN_STACK);
     return value;
 }
 void NewPointInStack(Stack_t* stack){
@@ -134,7 +142,10 @@ void NewPointInStack(Stack_t* stack){
 bool StackPush(Stack_t* stack,  Elem_t value) {
     assert(stack != nullptr);
     StackVerific(stack);
-    assert(stack->hash == MyHash(stack));
+    assert(stack->hash_data  == MurmurHashData(stack, LEN_DATA));
+    assert(stack->hash_stack == MurmurHashStack(stack, LEN_STACK));
+//    printf("hash_data %u\n", stack->hash_data);
+//    printf("hash_data %u\n", MurmurHashData(stack));
 
     AutoLenghtIncrease(stack);
 
@@ -142,7 +153,8 @@ bool StackPush(Stack_t* stack,  Elem_t value) {
     stack->data[stack->size++] = value;
 //    printf("Value - %d\n", value);
 //    printf("Stack - %d", stack->data[stack->size - 1]);
-    stack->hash = MyHash(stack);
+    stack->hash_data  = MurmurHashData(stack, LEN_DATA);
+    stack->hash_stack = MurmurHashStack(stack, LEN_STACK);
 
     //StackDump(stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
@@ -167,7 +179,7 @@ void StackVerific(Stack_t *stack) {
             assert(stack->data[i] == POISON);
         }
     }
-    //printf("Hash - %u\n", MyHash(stack));
+    //printf("hash_data - %u\n", MyHash(stack));
 }
 
 
@@ -190,7 +202,8 @@ bool StackInit(struct Stack_t* stack) {
     for (int i = stack->size; i < stack->lenght; ++i) {
         stack->data[i] = POISON;
     }
-    stack->hash = MyHash(stack);
+    stack->hash_data  = MurmurHashData(stack, LEN_DATA);
+    stack->hash_stack = MurmurHashStack(stack, LEN_STACK);
     return true;
 }
 
@@ -204,19 +217,19 @@ unsigned MyHash(Stack_t* stack){
     return sum;
 }
 
-/*unsigned int MurmurHash2 (Stack_t* stack)
+unsigned int MurmurHashData (Stack_t* stack, unsigned int lent)
 {
     const unsigned int m = 0x5bd1e995;
     const unsigned int seed = 0;
     const int r = 24;
 
-    const unsigned char * data = (const unsigned char *)stack->st_bird1;
-    unsigned int len = stack->st_bird2 - stack->st_bird1 + sizeof(stack->st_bird2);
+    const unsigned char * data = (const unsigned char *) stack->buffer;
+    unsigned int len = stack->buf_burd2 - stack->buf_bird1 + sizeof(*stack->buf_burd2);
     unsigned int h = seed ^ len;
 
 
-    unsigned int temp = stack->hash;
-    stack->hash  = 0;
+    unsigned int temp = stack->hash_data;
+    stack->hash_data  = 0;
    // const unsigned char * data = (const unsigned char *)key;
     unsigned int k;
 
@@ -253,9 +266,63 @@ unsigned MyHash(Stack_t* stack){
     h *= m;
     h ^= h >> 15;
 
-    stack->hash = temp;
+    stack->hash_data = temp;
     return h;
-}*/
+}
+
+unsigned int MurmurHashStack (Stack_t* stack, unsigned int lent)
+{
+    const unsigned int m = 0x5bd1e995;
+    const unsigned int seed = 0;
+    const int r = 24;
+
+    const unsigned char * data = (const unsigned char *) &stack->st_bird1;
+    unsigned int len = stack->st_bird2 - stack->st_bird1 + sizeof(stack->st_bird1);
+    unsigned int h = seed ^ len;
+
+
+    unsigned int temp = stack->hash_stack;
+    stack->hash_stack  = 0;
+    // const unsigned char * data = (const unsigned char *)key;
+    unsigned int k;
+
+    while (len >= 4)
+    {
+        k  = data[0];
+        k |= data[1] << 8;
+        k |= data[2] << 16;
+        k |= data[3] << 24;
+
+        k *= m;
+        k ^= k >> r;
+        k *= m;
+
+        h *= m;
+        h ^= k;
+
+        data += 4;
+        len -= 4;
+    }
+
+    switch (len)
+    {
+        case 3:
+            h ^= data[2] << 16;
+        case 2:
+            h ^= data[1] << 8;
+        case 1:
+            h ^= data[0];
+            h *= m;
+    };
+
+    h ^= h >> 13;
+    h *= m;
+    h ^= h >> 15;
+
+    stack->hash_stack = temp;
+    return h;
+}
+
 int AutoLenghtIncrease(Stack_t *stack) {
     assert(stack != nullptr);
     assert(stack->buffer != nullptr);
@@ -283,6 +350,8 @@ int AutoLenghtIncrease(Stack_t *stack) {
 }
 
 void StackDump(Stack_t *stack, const char welcome[], const char name_file[], const int line_prog, const char which_func[]){
+    assert(stack != nullptr);
+
     printf("Dumb (%s) From %s (%d) %s\n", welcome, name_file, line_prog, which_func);
     printf("\tStack[%p]\n", stack);
     printf("\t{\n");
@@ -301,9 +370,10 @@ void StackDump(Stack_t *stack, const char welcome[], const char name_file[], con
     printf("\t\t}\n");
     //printf("\t\tError = %d\n", err);
     printf("\t\tst_bird2 = %llX\n", stack->st_bird2);
-    printf("\t\tHash = %u\n", stack->hash);
+    printf("\t\thash_data = %u\n", stack->hash_data);
     printf("\t}\n");
 }
+
 
 int AutoLenghtDecrease(Stack_t *stack) {
     assert(stack != nullptr);
