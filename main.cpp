@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 
 typedef int Elem_t;
@@ -8,19 +9,28 @@ bool StackInit(struct Stack_t* stack);
 bool StackPush(Stack_t* stack,  Elem_t value);
 Elem_t StackPop(Stack_t* stack, int* n_err);
 unsigned MyHash(Stack_t* stack);
-void StackVerific(Stack_t *stack);
+void StackVerific(Stack_t* stack);
+void NewPointInStack(Stack_t* stack);
+int AutoLenghtIncrease(Stack_t* stack);
+int AutoLenghtDecrease(Stack_t* stack);
 //unsigned int MurmurHash2 (Stack_t* stack);
 void StackDump(Stack_t *stack, const char welcome[], const char name_file[], const int line_prog, const char which_func[]);
 
-const int LENGHT = 100;
+const int DEFAULT_LENGHT = 10;
 const Elem_t POISON = -777;
 
 struct Stack_t{
-    Bird_t bird1;
-    Elem_t data[LENGHT];
+    Bird_t st_bird1;
+    Elem_t* data;
+    void* buffer; // 'void *' for show that it is not data
+    Bird_t* buf_bird1; // or better do with 'void *'
+    Bird_t* buf_burd2;
     int size;
+    int lenght;
+    int last_max;
+    int hyster;
     unsigned int hash;
-    Bird_t bird2;
+    Bird_t st_bird2;
 };
 
 int main() {
@@ -42,21 +52,40 @@ int main() {
 
     printf("\n");
     }*/
+
     StackPush(&stack, 40);
     StackPush(&stack, 1);
     StackPush(&stack, 2);
+    StackPush(&stack, 3);
+    StackPush(&stack, 4);
+    StackPush(&stack, 5);
+    StackPush(&stack, 6);
+    StackPush(&stack, 7);
+    StackPush(&stack, 8);
+    StackPush(&stack, 9);
+    StackPush(&stack, 10);
+    StackPush(&stack, 11);
 
-    StackDump(&stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+    int n_err = 0;
+    StackPop(&stack, &n_err);
+    StackPop(&stack, &n_err);
+    StackPop(&stack, &n_err);
+    StackPop(&stack, &n_err);
+    StackPop(&stack, &n_err);
+    StackPop(&stack, &n_err);
+    StackPop(&stack, &n_err);
+
+
+    //StackDump(&stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
     //printf("This old stack ");
     /*for (int i = 0; i < stack.size; ++i) {
         printf("%d ", stack.data[i]);
     }
     printf("\n");*/
 
-    int n_err = 0;
     Elem_t value = StackPop(&stack, &n_err);
 
-    StackDump(&stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+    //StackDump(&stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
     //printf("This stack ");
    /* for (int i = 0; i < stack.size; ++i) {
@@ -68,7 +97,7 @@ int main() {
 //        printf("%d ", stack.data[i]);
 //    }
 
-    //printf("bird 1 - %p\ndata   - %p\nbird 1 - %p\n ", &stack.bird1, &stack.data, &stack.bird2);
+    //printf("bird 1 - %p\ndata   - %p\nbird 1 - %p\n ", &stack.st_st_bird1, &stack.data, &stack.st_bird2);
     return 0;
 }
 
@@ -83,9 +112,23 @@ Elem_t StackPop(Stack_t* stack, int* n_err) {
     Elem_t value = stack->data[--stack->size];
     stack->data[stack->size] = POISON;
 
+    AutoLenghtDecrease(stack);
+
     stack->hash = MyHash(stack);
 
     return value;
+}
+void NewPointInStack(Stack_t* stack){
+    assert(stack != nullptr);
+    assert(stack->buffer != nullptr);
+
+    stack->data = (Elem_t*) ((char*)stack->buffer + sizeof(Bird_t));
+    stack->buf_bird1 = (Bird_t*) stack->buffer;
+    stack->buf_burd2 = (Bird_t*) ((char*)stack->buffer + stack->lenght * sizeof(Elem_t) + sizeof(Bird_t));
+
+    assert(stack->data != nullptr);
+    assert(stack->buf_bird1 != nullptr);
+    assert(stack->buf_burd2 != nullptr);
 }
 
 bool StackPush(Stack_t* stack,  Elem_t value) {
@@ -93,29 +136,35 @@ bool StackPush(Stack_t* stack,  Elem_t value) {
     StackVerific(stack);
     assert(stack->hash == MyHash(stack));
 
+    AutoLenghtIncrease(stack);
 
-    if (stack->size >= LENGHT - 1) return false;
+    if (stack->size > stack->lenght - 1) return false;
     stack->data[stack->size++] = value;
 //    printf("Value - %d\n", value);
 //    printf("Stack - %d", stack->data[stack->size - 1]);
     stack->hash = MyHash(stack);
+
+    //StackDump(stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+
     return true;
 }
 
 void StackVerific(Stack_t *stack) {
-    if (stack->bird1 != 0xDEADBEEF){
-        printf("First bird invasion!!!\nNew value bird %llX\nI refuse to work!\n", stack->bird1);
-    }
-    if (stack->bird2 != 0xDEADBEEF){
-        printf("Second bird invasion!!!\nNew value bird %llX\nI refuse to work!\n", stack->bird2);
-    }
-    if (stack->size < 0){
-        printf("Size of stack < 0\nI refuse to work!\n");
+    StackDump(stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+    if (stack->st_bird1 != stack->st_bird2){
+        printf("Error in birds of stack\nI refuse to work!\n");
+        assert(stack->st_bird1 == stack->st_bird2);
     }
 
-    for (int i = stack->size; i < LENGHT; i++){
+    if (stack->size < 0){
+        printf("Size of stack < 0\nI refuse to work!\n");
+        assert(stack->size < 0);
+    }
+
+    for (int i = stack->size; i < stack->lenght; i++){
         if (stack->data[i] != POISON){
             printf("Error in poison number\nI refuse to work!\n");
+            assert(stack->data[i] == POISON);
         }
     }
     //printf("Hash - %u\n", MyHash(stack));
@@ -125,12 +174,20 @@ void StackVerific(Stack_t *stack) {
 bool StackInit(struct Stack_t* stack) {
     assert(stack != nullptr);
 
-    stack->bird1 = 0xDEADBEEF;
-    stack->bird2 = 0xDEADBEEF;
+    stack->lenght = 10;
+    stack->st_bird1 = 0xDEADBEEF;
+    stack->st_bird2 = stack->st_bird1;
     stack->size = 0;
+    stack->last_max = 0;
+    stack->hyster = 5;
+    stack->lenght = 10;
+
+    stack->buffer = (void*) calloc(stack->lenght * sizeof(Elem_t) + 2 * sizeof(Bird_t), sizeof(char));
+    assert(stack->buffer != nullptr);
+    NewPointInStack(stack);
 
     // 'POISON' it is poisonous value in my stack //
-    for (int i = 0; i < LENGHT; ++i) {
+    for (int i = stack->size; i < stack->lenght; ++i) {
         stack->data[i] = POISON;
     }
     stack->hash = MyHash(stack);
@@ -139,9 +196,9 @@ bool StackInit(struct Stack_t* stack) {
 
 unsigned MyHash(Stack_t* stack){
     unsigned int sum = 0;
-    int size = (int)(&stack->bird2 - &stack->bird1 + sizeof(stack->bird2));
+    int size = (int)(&stack->st_bird2 - &stack->st_bird1 + sizeof(stack->st_bird2));
     for (int i = 0; i < size; ++i) {
-        sum = sum * 33 + (unsigned int) *(((const unsigned char *) &stack->bird1) + i);
+        sum = sum * 33 + (unsigned int) *(((const unsigned char *) &stack->st_bird1) + i);
         // printf("sum - %u\n", sum);
     }
     return sum;
@@ -153,8 +210,8 @@ unsigned MyHash(Stack_t* stack){
     const unsigned int seed = 0;
     const int r = 24;
 
-    const unsigned char * data = (const unsigned char *)stack->bird1;
-    unsigned int len = stack->bird2 - stack->bird1 + sizeof(stack->bird2);
+    const unsigned char * data = (const unsigned char *)stack->st_bird1;
+    unsigned int len = stack->st_bird2 - stack->st_bird1 + sizeof(stack->st_bird2);
     unsigned int h = seed ^ len;
 
 
@@ -199,16 +256,41 @@ unsigned MyHash(Stack_t* stack){
     stack->hash = temp;
     return h;
 }*/
+int AutoLenghtIncrease(Stack_t *stack) {
+    assert(stack != nullptr);
+    assert(stack->buffer != nullptr);
+
+    if ((stack->lenght) == stack->size) {
+        void *point = nullptr;
+
+        printf("%lu", 2 * stack->lenght * sizeof(Elem_t) + 2 * sizeof(Bird_t));
+        point = realloc((stack->buffer), (2 * stack->lenght * sizeof(Elem_t) + 2 * sizeof(Bird_t)));
+        if (point == nullptr) {
+            printf("Error in realloc()\n");
+            assert(point != nullptr);
+        }
+        stack->buffer = point;
+        stack->lenght *= 2;
+
+        NewPointInStack(stack);
+
+        for (int i = stack->size; i < stack->lenght; ++i) {
+            stack->data[i] = POISON;
+        }
+        //stack->last_max;
+    }
+    return 0;
+}
 
 void StackDump(Stack_t *stack, const char welcome[], const char name_file[], const int line_prog, const char which_func[]){
     printf("Dumb (%s) From %s (%d) %s\n", welcome, name_file, line_prog, which_func);
     printf("\tStack[%p]\n", stack);
     printf("\t{\n");
-    printf("\tBird1 = %llX\n", stack->bird1);
+    printf("\tst_bird1 = %llX\n", stack->st_bird1);
     printf("\tsize = %d\n", stack->size);
-    printf("\tdata [%d][%p]\n", LENGHT, &stack->data);
+    printf("\tdata [%d][%p]\n", stack->lenght, &stack->data);
     printf("\t\t{\n");
-    for (int i = 0; i < LENGHT; ++i) {
+    for (int i = 0; i < stack->lenght; ++i) {
         if (i < stack->size){
             printf("\t\t*[%d] = %d\n", i, stack->data[i]);
 
@@ -218,8 +300,31 @@ void StackDump(Stack_t *stack, const char welcome[], const char name_file[], con
     }
     printf("\t\t}\n");
     //printf("\t\tError = %d\n", err);
-    printf("\t\tBird2 = %llX\n", stack->bird2);
+    printf("\t\tst_bird2 = %llX\n", stack->st_bird2);
     printf("\t\tHash = %u\n", stack->hash);
     printf("\t}\n");
 }
+
+int AutoLenghtDecrease(Stack_t *stack) {
+    assert(stack != nullptr);
+    assert(stack->buffer != nullptr);
+
+    if ((stack->lenght / 2 - stack->hyster) >=  stack->size){
+        void *point = nullptr;
+
+        point = realloc(stack->buffer, (stack->lenght / 2 * sizeof(Elem_t) + 2 * sizeof(Bird_t)));
+        if (point == nullptr) {
+            printf("Error in realloc()\n");
+            assert(point != nullptr);
+        }
+
+        stack->buffer = point;
+        stack->lenght /= 2;
+
+        NewPointInStack(stack);
+    }
+    return 0;
+}
+
+
 
