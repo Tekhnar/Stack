@@ -10,6 +10,7 @@ Elem_t StackPop(Stack_t* stack, int* n_err);
 unsigned MyHash(Stack_t* stack);
 void StackVerific(Stack_t *stack);
 //unsigned int MurmurHash2 (Stack_t* stack);
+void StackDump(Stack_t *stack, const char welcome[], const char name_file[], const int line_prog, const char which_func[]);
 
 const int LENGHT = 100;
 const Elem_t POISON = -777;
@@ -45,7 +46,7 @@ int main() {
     StackPush(&stack, 1);
     StackPush(&stack, 2);
 
-   // void StackDump(Stack_t *stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+    StackDump(&stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
     //printf("This old stack ");
     /*for (int i = 0; i < stack.size; ++i) {
         printf("%d ", stack.data[i]);
@@ -54,6 +55,8 @@ int main() {
 
     int n_err = 0;
     Elem_t value = StackPop(&stack, &n_err);
+
+    StackDump(&stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 
     //printf("This stack ");
    /* for (int i = 0; i < stack.size; ++i) {
@@ -78,11 +81,11 @@ Elem_t StackPop(Stack_t* stack, int* n_err) {
     if (stack->size < 1) *n_err = 1;
     assert(stack->size != 0);
     Elem_t value = stack->data[--stack->size];
-    stack->data[stack->size + 1] = POISON;
+    stack->data[stack->size] = POISON;
 
     stack->hash = MyHash(stack);
 
-    return stack->data[stack->size];
+    return value;
 }
 
 bool StackPush(Stack_t* stack,  Elem_t value) {
@@ -196,8 +199,27 @@ unsigned MyHash(Stack_t* stack){
     stack->hash = temp;
     return h;
 }*/
-/*
-void StackDump(Stack_t *stack, const char welcome[], const char name_file, const char line_prog __LINE__, const char which_func __PRETTY_FUNCTION__){
-    printf("Dumb (%s) From %s (%")
-}*/
+
+void StackDump(Stack_t *stack, const char welcome[], const char name_file[], const int line_prog, const char which_func[]){
+    printf("Dumb (%s) From %s (%d) %s\n", welcome, name_file, line_prog, which_func);
+    printf("\tStack[%p]\n", stack);
+    printf("\t{\n");
+    printf("\tBird1 = %llX\n", stack->bird1);
+    printf("\tsize = %d\n", stack->size);
+    printf("\tdata [%d][%p]\n", LENGHT, &stack->data);
+    printf("\t\t{\n");
+    for (int i = 0; i < LENGHT; ++i) {
+        if (i < stack->size){
+            printf("\t\t*[%d] = %d\n", i, stack->data[i]);
+
+        } else{
+            printf("\t\t [%d] = %d(POISON)\n", i, stack->data[i]);
+        }
+    }
+    printf("\t\t}\n");
+    //printf("\t\tError = %d\n", err);
+    printf("\t\tBird2 = %llX\n", stack->bird2);
+    printf("\t\tHash = %u\n", stack->hash);
+    printf("\t}\n");
+}
 
