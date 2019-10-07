@@ -1,5 +1,5 @@
-#include "my_stack.h"
 
+#include "my_stack.h"
 
 int main() {
     struct Stack_t stack = {};

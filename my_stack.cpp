@@ -1,30 +1,31 @@
 //
 // Created by texnar on 07/10/2019.
-// It is my library for stack
 //
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include "my_stack.h"
-
 #define LEN_STACK (unsigned int)(stack->st_bird2 -  stack->st_bird1  + sizeof(stack->st_bird1))
 #define LEN_DATA  (unsigned int)(stack->buf_burd2 -  stack->buf_bird1 + sizeof(*stack->buf_burd2))
 
-Elem_t StackPop(Stack_t* stack, int* n_err) {
+Elem_t StackPop(Stack_t* stack, Elem_t* num) {
     StackVerific(stack);
 
-    if (stack->size < 0) *n_err = 1;
+//    if (stack->size < 0) *n_err = 1;
     assert(stack->size != 0);
 
-    Elem_t value = stack->data[--stack->size];
+    *num = stack->data[--stack->size];
 
     stack->data[stack->size] = POISON;
 
     AutoLenghtDecrease(stack);
 
+#if LEVEL_VERIFIC >= 2
     NewHash(stack);
+#endif
+
     StackVerific(stack);
-    return value;
+    return 0;// write number of error (in future)
 }
 
 void NewPointInStack(Stack_t* stack){
@@ -32,15 +33,18 @@ void NewPointInStack(Stack_t* stack){
     assert(stack->buffer != nullptr);
 
     stack->data = (Elem_t*) ((char*)stack->buffer + sizeof(Bird_t));
+    assert(stack->data != nullptr);
+
+#if LEVEL_VERIFIC != 0
     stack->buf_bird1 = (Bird_t*) stack->buffer;
     stack->buf_burd2 = (Bird_t*) ((char*)stack->buffer + stack->lenght * sizeof(Elem_t) + sizeof(Bird_t));
 
-    assert(stack->data != nullptr);
     assert(stack->buf_bird1 != nullptr);
     assert(stack->buf_burd2 != nullptr);
+#endif
 }
 
-bool StackPush(Stack_t* stack,  Elem_t value) {
+int StackPush(Stack_t* stack,  Elem_t value) {
     StackVerific(stack);
 //    printf("hash_data %u\n", stack->hash_data);
 //    printf("hash_data %u\n", MurmurHashData(stack));
@@ -53,13 +57,16 @@ bool StackPush(Stack_t* stack,  Elem_t value) {
 //    printf("Value - %d\n", value);
 //    printf("Stack - %d", stack->data[stack->size - 1]);
 
+#if LEVEL_VERIFIC >= 2
     NewHash(stack);
+#endif
     StackVerific(stack);
 
     //StackDump(stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
-    return true;
+    return 0; //write error (in future)
 }
 
+#if LEVEL_VERIFIC >= 2
 void NewHash(Stack_t *stack) {
     assert(stack != nullptr);
     assert(stack->buffer != nullptr);
@@ -67,19 +74,23 @@ void NewHash(Stack_t *stack) {
     stack->hash_data  = MurmurHash(stack, LEN_DATA, stack->hash_data);
     stack->hash_stack = MurmurHash(stack, LEN_STACK, stack->hash_stack);
 }
+#endif
 
 void StackVerific(Stack_t *stack) {
     assert(stack != nullptr);
     assert(stack->buffer != nullptr);
+#if  LEVEL_VERIFIC >= 2
     assert(stack->hash_data  == MurmurHash(stack, LEN_DATA, stack->hash_data));
     assert(stack->hash_stack == MurmurHash(stack, LEN_STACK, stack->hash_stack));
+#endif
 
     //StackDump(stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
+#if LEVEL_VERIFIC != 0
     if (stack->st_bird1 != stack->st_bird2){
         printf("Error in birds of stack\nI refuse to work!\n");
         assert(stack->st_bird1 == stack->st_bird2);
     }
-
+#endif
     if (stack->size < 0){
         printf("Size of stack < 0\nI refuse to work!\n");
         assert(stack->size < 0);
@@ -99,8 +110,10 @@ bool StackInit(struct Stack_t* stack, int DEFAULT_LENGHT ,int DEFAULT_HYSTER) {
     assert(stack != nullptr);
 
     stack->lenght = 10;
+#if LEVEL_VERIFIC != 0
     stack->st_bird1 = 0xDEADBEEF;
     stack->st_bird2 = stack->st_bird1;
+#endif
     stack->size = 0;
     //stack->last_max = 0;
     stack->hyster = DEFAULT_HYSTER;
@@ -114,21 +127,14 @@ bool StackInit(struct Stack_t* stack, int DEFAULT_LENGHT ,int DEFAULT_HYSTER) {
     for (int i = stack->size; i < stack->lenght; ++i) {
         stack->data[i] = POISON;
     }
+#if LEVEL_VERIFIC >= 2
     stack->hash_data  = MurmurHash(stack, LEN_DATA, stack->hash_stack);
     stack->hash_stack = MurmurHash(stack, LEN_STACK, stack->hash_data);
     return true;
+#endif
 }
 
-/*unsigned MyHash(Stack_t* stack){
-    unsigned int sum = 0;
-    int size = (int)(&stack->st_bird2 - &stack->st_bird1 + sizeof(stack->st_bird2));
-    for (int i = 0; i < size; ++i) {
-        sum = sum * 33 + (unsigned int) *(((const unsigned char *) &stack->st_bird1) + i);
-        // printf("sum - %u\n", sum);
-    }
-    return sum;
-}*/
-
+#if LEVEL_VERIFIC >= 2
 unsigned int MurmurHash (Stack_t* stack, unsigned int len, unsigned int last_hash)
 {
     const unsigned int m = 0x5bd1e995;
@@ -180,6 +186,7 @@ unsigned int MurmurHash (Stack_t* stack, unsigned int len, unsigned int last_has
     stack->hash_stack = last_hash;
     return h;
 }
+#endif
 
 int AutoLenghtIncrease(Stack_t *stack) {
     assert(stack != nullptr);
@@ -213,7 +220,11 @@ void StackDump(Stack_t *stack, const char welcome[], const char name_file[], con
     printf("Dump (%s) From %s (%d) %s\n", welcome, name_file, line_prog, which_func);
     printf("\tStack[%p]\n", stack);
     printf("\t{\n");
+
+#if LEVEL_VERIFIC != 0
     printf("\tst_bird1 = %llX\n", stack->st_bird1);
+#endif
+
     printf("\tsize = %d\n", stack->size);
     printf("\tdata [%d][%p]\n", stack->lenght, &stack->data);
     printf("\t\t{\n");
@@ -227,8 +238,14 @@ void StackDump(Stack_t *stack, const char welcome[], const char name_file[], con
     }
     printf("\t\t}\n");
     //printf("\t\tError = %d\n", err);
+
+#if LEVEL_VERIFIC != 0
     printf("\t\tst_bird2 = %llX\n", stack->st_bird2);
+#endif
+
+#if LEVEL_VERIFIC >= 2
     printf("\t\thash_data = %u\n", stack->hash_data);
+#endif
     printf("\t}\n");
 }
 
