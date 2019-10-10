@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <assert.h>
 #include "my_stack.h"
-#define LEN_STACK (unsigned int)(stack->st_bird2 -  stack->st_bird1  + sizeof(stack->st_bird1))
-#define LEN_DATA  (unsigned int)(stack->buf_burd2 -  stack->buf_bird1 + sizeof(*stack->buf_burd2))
+#define LEN_STACK (unsigned int)(&stack->st_bird2 -  &stack->st_bird1)
+#define LEN_DATA  (unsigned int)(&stack->buf_burd2 -  &stack->buf_bird1)
 
 Elem_t StackPop(Stack_t* stack, Elem_t* num) {
     StackVerific(stack);
@@ -46,7 +46,7 @@ void NewPointInStack(Stack_t* stack){
 
 int StackPush(Stack_t* stack,  Elem_t value) {
     StackVerific(stack);
-//    printf("hash_data %u\n", stack->hash_data);
+//    printf("hash_data %u\n", &stack->hash_data);
 //    printf("hash_data %u\n", MurmurHashData(stack));
 
     AutoLenghtIncrease(stack);
@@ -71,8 +71,8 @@ void NewHash(Stack_t *stack) {
     assert(stack != nullptr);
     assert(stack->buffer != nullptr);
 
-    stack->hash_data  = MurmurHash(stack, LEN_DATA, stack->hash_data);
-    stack->hash_stack = MurmurHash(stack, LEN_STACK, stack->hash_stack);
+    stack->hash_data  = MurmurHash(stack, LEN_DATA, &stack->hash_data);
+    stack->hash_stack = MurmurHash(stack, LEN_STACK, &stack->hash_stack);
 }
 #endif
 
@@ -80,8 +80,8 @@ void StackVerific(Stack_t *stack) {
     assert(stack != nullptr);
     assert(stack->buffer != nullptr);
 #if  LEVEL_VERIFIC >= 2
-    assert(stack->hash_data  == MurmurHash(stack, LEN_DATA, stack->hash_data));
-    assert(stack->hash_stack == MurmurHash(stack, LEN_STACK, stack->hash_stack));
+    assert(stack->hash_data  == MurmurHash(stack, LEN_DATA, &stack->hash_data));
+    assert(stack->hash_stack == MurmurHash(stack, LEN_STACK, &stack->hash_stack));
 #endif
 
     //StackDump(stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
@@ -109,7 +109,6 @@ void StackVerific(Stack_t *stack) {
 bool StackInit(struct Stack_t* stack, int DEFAULT_LENGHT ,int DEFAULT_HYSTER) {
     assert(stack != nullptr);
 
-    stack->lenght = 10;
 #if LEVEL_VERIFIC != 0
     stack->st_bird1 = 0xDEADBEEF;
     stack->st_bird2 = stack->st_bird1;
@@ -128,24 +127,32 @@ bool StackInit(struct Stack_t* stack, int DEFAULT_LENGHT ,int DEFAULT_HYSTER) {
         stack->data[i] = POISON;
     }
 #if LEVEL_VERIFIC >= 2
-    stack->hash_data  = MurmurHash(stack, LEN_DATA, stack->hash_stack);
-    stack->hash_stack = MurmurHash(stack, LEN_STACK, stack->hash_data);
+    stack->hash_data  = MurmurHash(stack, LEN_DATA, &stack->hash_data);
+    stack->hash_stack = MurmurHash(stack, LEN_STACK, &stack->hash_stack);
     return true;
 #endif
 }
 
 #if LEVEL_VERIFIC >= 2
-unsigned int MurmurHash (Stack_t* stack, unsigned int len, unsigned int last_hash)
+unsigned int MurmurHash (Stack_t* stack, unsigned int len, unsigned int* point_hash)
 {
     const unsigned int m = 0x5bd1e995;
     const unsigned int seed = 0;
     const int r = 24;
+    const unsigned char * data = 0;
 
-    const unsigned char * data = (const unsigned char *) &stack->st_bird1;
+    if (point_hash == &stack->hash_stack){
+        data = (const unsigned char *) &stack->st_bird1;
+    }
+    if (point_hash == &stack->hash_data){
+        data = (const unsigned char *) &stack->buf_bird1;
+    }
+
+    //const unsigned char * data = (const unsigned char *) &stack->st_bird1;
     //unsigned int len = stack->st_bird2 - stack->st_bird1 + sizeof(stack->st_bird1);
     unsigned int h = seed ^ len;
 
-    last_hash = stack->hash_stack;
+    unsigned int last_hash = stack->hash_stack;
     stack->hash_stack  = 0;
     // const unsigned char * data = (const unsigned char *)key;
     unsigned int k = 0;
@@ -244,6 +251,7 @@ void StackDump(Stack_t *stack, const char welcome[], const char name_file[], con
 #endif
 
 #if LEVEL_VERIFIC >= 2
+    printf("\t\thash_stack = %u\n", stack->hash_stack);
     printf("\t\thash_data = %u\n", stack->hash_data);
 #endif
     printf("\t}\n");
@@ -268,6 +276,14 @@ int AutoLenghtDecrease(Stack_t *stack) {
         NewPointInStack(stack);
     }
     return 0;
+}
+
+void StackClose(Stack_t* stack) {
+    free(stack->buffer);
+    stack->buffer = 0;
+    stack->lenght = 1;
+    stack->size = 0;
+    stack->hyster = 0;
 }
 
 #undef LEN_STACK

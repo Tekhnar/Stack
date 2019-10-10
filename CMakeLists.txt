@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.15)
 
-add_definitions(-DLEVEL_VERIFIC=0)
+add_definitions(-DLEVEL_VERIFIC=2)
 
 project(stack)
 

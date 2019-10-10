@@ -18,9 +18,10 @@ void NewPointInStack(Stack_t* stack);
 int AutoLenghtIncrease(Stack_t* stack);
 int AutoLenghtDecrease(Stack_t* stack);
 //unsigned int MurmurHashData (Stack_t* stack, unsigned int len);
-unsigned int MurmurHash (Stack_t* stack, unsigned int len, unsigned int last_hash);
+unsigned int MurmurHash (Stack_t* stack, unsigned int len, unsigned int* last_hash);
 //unsigned int MurmurHashStack (Stack_t* stack, unsigned int len);
 void StackDump(Stack_t* stack, const char welcome[], const char name_file[], const int line_prog, const char which_func[]);
+void StackClose(Stack_t* stack);
 
 #if  LEVEL_VERIFIC >= 2
 void NewHash(Stack_t* stack);
