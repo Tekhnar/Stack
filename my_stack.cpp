@@ -46,23 +46,17 @@ void NewPointInStack(Stack_t* stack){
 
 int StackPush(Stack_t* stack,  Elem_t value) {
     StackVerific(stack);
-//    printf("hash_data %u\n", stack->hash_data);
-//    printf("hash_data %u\n", MurmurHashData(stack));
 
     AutoLenghtIncrease(stack);
 
     if (stack->size > stack->lenght - 1) return false;
     stack->data[stack->size++] = value;
-//
-//    printf("Value - %d\n", value);
-//    printf("Stack - %d", stack->data[stack->size - 1]);
 
 #if LEVEL_VERIFIC >= 2
     NewHash(stack);
 #endif
     StackVerific(stack);
 
-    //StackDump(stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
     return 0; //write error (in future)
 }
 
@@ -84,7 +78,6 @@ void StackVerific(Stack_t *stack) {
     assert(stack->hash_stack == MurmurHash(stack, LEN_STACK, stack->hash_stack));
 #endif
 
-    //StackDump(stack, "Debug", __FILE__, __LINE__, __PRETTY_FUNCTION__);
 #if LEVEL_VERIFIC != 0
     if (stack->st_bird1 != stack->st_bird2){
         printf("Error in birds of stack\nI refuse to work!\n");
@@ -102,7 +95,6 @@ void StackVerific(Stack_t *stack) {
             assert(stack->data[i] == POISON);
         }
     }
-    //printf("hash_data - %u\n", MyHash(stack));
 }
 
 
@@ -115,7 +107,6 @@ bool StackInit(struct Stack_t* stack, int DEFAULT_LENGHT ,int DEFAULT_HYSTER) {
     stack->st_bird2 = stack->st_bird1;
 #endif
     stack->size = 0;
-    //stack->last_max = 0;
     stack->hyster = DEFAULT_HYSTER;
     stack->lenght = DEFAULT_LENGHT;
 
@@ -195,7 +186,6 @@ int AutoLenghtIncrease(Stack_t *stack) {
     if ((stack->lenght) == stack->size) {
         void *point = nullptr;
 
-        //printf("%lu", FACTOR_DYNAMIC * stack->lenght * sizeof(Elem_t) + FACTOR_DYNAMIC * sizeof(Bird_t));
         point = realloc((stack->buffer), (FACTOR_DYNAMIC * stack->lenght * sizeof(Elem_t) + FACTOR_DYNAMIC * sizeof(Bird_t)));
         if (point == nullptr) {
             printf("Error in realloc()\n");
@@ -209,7 +199,6 @@ int AutoLenghtIncrease(Stack_t *stack) {
         for (int i = stack->size; i < stack->lenght; ++i) {
             stack->data[i] = POISON;
         }
-        //stack->last_max;
     }
     return 0;
 }
@@ -237,7 +226,6 @@ void StackDump(Stack_t *stack, const char welcome[], const char name_file[], con
         }
     }
     printf("\t\t}\n");
-    //printf("\t\tError = %d\n", err);
 
 #if LEVEL_VERIFIC != 0
     printf("\t\tst_bird2 = %llX\n", stack->st_bird2);
@@ -245,6 +233,7 @@ void StackDump(Stack_t *stack, const char welcome[], const char name_file[], con
 
 #if LEVEL_VERIFIC >= 2
     printf("\t\thash_data = %u\n", stack->hash_data);
+    printf("\t\thash_stack = %u\n", stack->hash_stack);
 #endif
     printf("\t}\n");
 }
