@@ -6,7 +6,7 @@
 #include <assert.h>
 #include "my_stack.h"
 #define LEN_STACK (unsigned int)(&stack->st_bird2 -  &stack->st_bird1)
-#define LEN_DATA  (unsigned int)(&stack->buf_burd2 -  &stack->buf_bird1)
+#define LEN_DATA  (unsigned int)(&stack->buf_bird2 -  &stack->buf_bird1)
 
 Elem_t StackPop(Stack_t* stack, Elem_t* num) {
     StackVerific(stack);
@@ -37,10 +37,13 @@ void NewPointInStack(Stack_t* stack){
 
 #if LEVEL_VERIFIC != 0
     stack->buf_bird1 = (Bird_t*) stack->buffer;
-    stack->buf_burd2 = (Bird_t*) ((char*)stack->buffer + stack->lenght * sizeof(Elem_t) + sizeof(Bird_t));
+    stack->buf_bird2 = (Bird_t*) ((char*)stack->buffer + stack->length * sizeof(Elem_t) + sizeof(Bird_t));
 
     assert(stack->buf_bird1 != nullptr);
-    assert(stack->buf_burd2 != nullptr);
+    assert(stack->buf_bird2 != nullptr);
+
+    *stack->buf_bird1 = 0xDEADBEEF;
+    *stack->buf_bird2 = *stack->buf_bird1;
 #endif
 }
 
@@ -51,7 +54,7 @@ int StackPush(Stack_t* stack,  Elem_t value) {
 
     AutoLenghtIncrease(stack);
 
-    if (stack->size > stack->lenght - 1) return false;
+    if (stack->size > stack->length - 1) return false;
     stack->data[stack->size++] = value;
 //
 //    printf("Value - %d\n", value);
@@ -88,7 +91,12 @@ void StackVerific(Stack_t *stack) {
 #if LEVEL_VERIFIC != 0
     if (stack->st_bird1 != stack->st_bird2){
         printf("Error in birds of stack\nI refuse to work!\n");
-        assert(stack->st_bird1 == stack->st_bird2);
+        assert(stack->st_bird1 == stack->st_bird2 == 0xDEADBEEF);
+    }
+
+    if (*stack->buf_bird1 != *stack->buf_bird2){
+        printf("Error in birds of stack\nI refuse to work!\n");
+        assert(*stack->buf_bird1 == *stack->buf_bird2 == 0xDEADBEEF);
     }
 #endif
     if (stack->size < 0){
@@ -96,7 +104,7 @@ void StackVerific(Stack_t *stack) {
         assert(stack->size < 0);
     }
 
-    for (int i = stack->size; i < stack->lenght; i++){
+    for (int i = stack->size; i < stack->length; i++){
         if (stack->data[i] != POISON){
             printf("Error in poison number\nI refuse to work!\n");
             assert(stack->data[i] == POISON);
@@ -116,14 +124,14 @@ bool StackInit(struct Stack_t* stack, int DEFAULT_LENGHT ,int DEFAULT_HYSTER) {
     stack->size = 0;
     //stack->last_max = 0;
     stack->hyster = DEFAULT_HYSTER;
-    stack->lenght = DEFAULT_LENGHT;
+    stack->length = DEFAULT_LENGHT;
 
-    stack->buffer = (void*) calloc(stack->lenght * sizeof(Elem_t) + 2 * sizeof(Bird_t), sizeof(char));
+    stack->buffer = (void*) calloc(stack->length * sizeof(Elem_t) + 2 * sizeof(Bird_t), sizeof(char));
     assert(stack->buffer != nullptr);
     NewPointInStack(stack);
 
     // 'POISON' it is poisonous value in my stack //
-    for (int i = stack->size; i < stack->lenght; ++i) {
+    for (int i = stack->size; i < stack->length; ++i) {
         stack->data[i] = POISON;
     }
 #if LEVEL_VERIFIC >= 2
@@ -199,21 +207,21 @@ int AutoLenghtIncrease(Stack_t *stack) {
     assert(stack != nullptr);
     assert(stack->buffer != nullptr);
 
-    if ((stack->lenght) == stack->size) {
+    if ((stack->length) == stack->size) {
         void *point = nullptr;
 
-        //printf("%lu", FACTOR_DYNAMIC * stack->lenght * sizeof(Elem_t) + FACTOR_DYNAMIC * sizeof(Bird_t));
-        point = realloc((stack->buffer), (FACTOR_DYNAMIC * stack->lenght * sizeof(Elem_t) + FACTOR_DYNAMIC * sizeof(Bird_t)));
+        //printf("%lu", FACTOR_DYNAMIC * stack->length * sizeof(Elem_t) + FACTOR_DYNAMIC * sizeof(Bird_t));
+        point = realloc((stack->buffer), (FACTOR_DYNAMIC * stack->length * sizeof(Elem_t) + FACTOR_DYNAMIC * sizeof(Bird_t)));
         if (point == nullptr) {
             printf("Error in realloc()\n");
             assert(point != nullptr);
         }
         stack->buffer = point;
-        stack->lenght *= FACTOR_DYNAMIC;
+        stack->length *= FACTOR_DYNAMIC;
 
         NewPointInStack(stack);
 
-        for (int i = stack->size; i < stack->lenght; ++i) {
+        for (int i = stack->size; i < stack->length; ++i) {
             stack->data[i] = POISON;
         }
         //stack->last_max;
@@ -233,9 +241,9 @@ void StackDump(Stack_t *stack, const char welcome[], const char name_file[], con
 #endif
 
     printf("\tsize = %d\n", stack->size);
-    printf("\tdata [%d][%p]\n", stack->lenght, &stack->data);
+    printf("\tdata [%d][%p]\n", stack->length, &stack->data);
     printf("\t\t{\n");
-    for (int i = 0; i < stack->lenght; ++i) {
+    for (int i = 0; i < stack->length; ++i) {
         if (i < stack->size){
             printf("\t\t*[%d] = %d\n", i, stack->data[i]);
 
@@ -261,17 +269,17 @@ int AutoLenghtDecrease(Stack_t *stack) {
     assert(stack != nullptr);
     assert(stack->buffer != nullptr);
 
-    if ((stack->lenght / FACTOR_DYNAMIC - stack->hyster) >=  stack->size){
+    if ((stack->length / FACTOR_DYNAMIC - stack->hyster) >=  stack->size){
         void *point = nullptr;
 
-        point = realloc(stack->buffer, (stack->lenght / FACTOR_DYNAMIC * sizeof(Elem_t) + FACTOR_DYNAMIC * sizeof(Bird_t)));
+        point = realloc(stack->buffer, (stack->length / FACTOR_DYNAMIC * sizeof(Elem_t) + FACTOR_DYNAMIC * sizeof(Bird_t)));
         if (point == nullptr) {
             printf("Error in realloc()\n");
             assert(point != nullptr);
         }
 
         stack->buffer = point;
-        stack->lenght /= FACTOR_DYNAMIC;
+        stack->length /= FACTOR_DYNAMIC;
 
         NewPointInStack(stack);
     }
@@ -281,7 +289,7 @@ int AutoLenghtDecrease(Stack_t *stack) {
 void StackClose(Stack_t* stack) {
     free(stack->buffer);
     stack->buffer = 0;
-    stack->lenght = 1;
+    stack->length = 1;
     stack->size = 0;
     stack->hyster = 0;
 }

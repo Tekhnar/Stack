@@ -39,10 +39,10 @@ struct Stack_t{
     void* buffer; // 'void *' for show that it is not data
 #if LEVEL_VERIFIC != 0
     Bird_t* buf_bird1; // or better do with 'void *'
-    Bird_t* buf_burd2;
+    Bird_t* buf_bird2;
 #endif
     int size;
-    int lenght;
+    int length;
 
 //    int last_max;
     int hyster;
@@ -54,6 +54,7 @@ struct Stack_t{
 #if LEVEL_VERIFIC != 0
     Bird_t st_bird2;
 #endif
+    //Bird_t *buf_bird2;
 };
 
 const Elem_t POISON = -777;
